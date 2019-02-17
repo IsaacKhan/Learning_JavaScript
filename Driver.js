@@ -9,15 +9,15 @@ function calculate()
     {
         calc = a + b;
     }
-    else if (op = "min")
+    else if (op == "min")
     {
         calc = a - b;
     }
-    else if (op = "div")
+    else if (op == "div")
     {
         calc = a / b;
     }
-    else if (op = "mul")
+    else if (op == "mul")
     {
         calc = a * b;
     }
