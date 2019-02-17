@@ -1,2 +1,2 @@
 # Learning_JavaScript
-Learning JavaScript!
+Learning basic JavaScript by creating a calculator!
