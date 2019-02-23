@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+
+  <div id="root"></div>
+
+  <div class="Game">
+    <h1>Blackjack</h1>
+    <input type="button" class="btn" value="start" onclick="start()"/>
+    <input type="button" class="btn" value="hit me" onclick="hitMe()"/>
+    <input type="button" class="btn" value="stay" onclick="stay()"/>
+
+    <div id="deck" class="deck">
+        <div class="card" id="deckcount">52</div>
+        <div class="status" id="status"></div>
+    </div>
+
+    <div class="clear"></div>
+</div>
+
+  <script src="scripts.js"></script>
+
+</body>
+
+</html>
