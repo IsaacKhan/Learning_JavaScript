@@ -8,10 +8,11 @@ var drawCards = new XMLHttpRequest();
 var dealerPile = new XMLHttpRequest();
 var playerPile = new XMLHttpRequest();
 
-var deckID, cardsDrawn, dealerHand,  playerHand;
+var deckID = 'bo4uftb398f6';
+var cardsDrawn, dealerHand,  playerHand, cardCode1, cardCode2;
 
 // Create a deck of cards and store deck id
-createDeck.open('GET','https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=3', true)
+createDeck.open('GET',`https://deckofcardsapi.com/api/deck/bo4uftb398f6/shuffle/?deck_count=3`, true)
 
 createDeck.onload = function() 
 {
@@ -21,30 +22,34 @@ createDeck.onload = function()
 
     /// Adding in an if statement for http error codes
     console.log('Initial Deck Creation');
-    console.log(data);
-    console.log(deckID);
+    console.log(`Data: `, data);
+    console.log(`deckID: `, deckID);
     console.log('---------');
 
 }
 createDeck.send();
 
 // draw two cards from deck and store info
-drawCards.open('GET', 'https://deckofcardsapi.com/api/deck/${deckID}/draw/?count=2', true);
+drawCards.open('GET', `https://deckofcardsapi.com/api/deck/bo4uftb398f6/draw/?count=2`, true);
 drawCards.onload = function() 
 {
     var data = JSON.parse(this.response);   
 
     cardsDrawn = data.cards;
+    cardCode1 = cardsDrawn[0].code;
+    cardCode2 = cardsDrawn[1].code;
 
     console.log('Drawing 2 Cards');
-    console.log(data);
-    console.log(cardsDrawn);
+    console.log(`Data: `,data);
+    console.log(`cardsDrawn: `, cardsDrawn);
+    console.log(`cardCode1: `, cardCode1);
+    console.log(`cardCode2: `, cardCode2);
     console.log('---------');
 }
 drawCards.send();
 
 // create dealer pile
-dealerPile.open('GET', 'https://deckofcardsapi.com/api/deck/${deckID}/pile/Dealer/add/?cards=${cardsDrawn}', true);
+dealerPile.open('GET', `https://deckofcardsapi.com/api/deck/bo4uftb398f6/pile/Dealer/add/?cards=${cardCode1},${cardCode2}`, true);
 dealerPile.onload = function()
 {
     var data = JSON.parse(this.response);
@@ -52,13 +57,13 @@ dealerPile.onload = function()
     dealerHand = data.piles.Dealer;
 
     console.log('Getting Dealer\'s hand');
-    console.log(data);
-    console.log(dealerHand);
+    console.log(`Data:`, data);
+    console.log(`dealerHand: `, dealerHand);
     console.log('---------');
 }
 dealerPile.send();
 
-playerPile.open('GET', 'https://deckofcardsapi.com/api/deck/${deckID}/pile/Player/add/?cards=${cardsDrawn}', true);
+playerPile.open('GET', `https://deckofcardsapi.com/api/deck/bo4uftb398f6/pile/Player/add/?cards=${cardCode1},${cardCode2}`, true);
 playerPile.onload = function()
 {
     var data = JSON.parse(this.response);
@@ -66,7 +71,8 @@ playerPile.onload = function()
     playerHand = data.piles.Player;
 
     console.log('Getting Player\'s hand');
-    console.log(data);
-    console.log(playerHand);
+    console.log(`Data: `, data);
+    console.log(`playerHand: `, playerHand);
     console.log('---------');
 }
+playerPile.send();
