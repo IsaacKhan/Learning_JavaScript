@@ -5,19 +5,33 @@
 ///// Trying to format this in a way the code is reactive to the button pushes
 ///// Not really following the tut right now...
 
-var dealerHand, playerHand, deckID;
-var request = new XMLHttpRequest();
-
 function start()
 {
+    var dealerHand, playerHand, deckID;
+    var request = new XMLHttpRequest();
+    var pRequest = new XMLHttpRequest();
+    var dRequest = new XMLHttpRequest();
+    
     createDeck(request, deckID);
-    dealPlayer(request, deckID);
-    //dealDealer(request, deckID);
+    dealPlayer(pRequest, deckID, playerHand);
+    dealDealer(dRequest, deckID, dealerHand);
+    showHands();
 }
 
-function createDeck()
+function showHands()
 {
-    request.open('GET', 'https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=3');
+    var dHand = document.getElementById("dealer")
+    var pHand = document.getElementById("player")
+
+    if (dHand.style.display === "none") 
+        dHand.style.display = "block";
+    if (pHand.style.display === "none")
+        pHand.style.display = "block";
+}
+
+function createDeck(request, deckID)
+{
+    request.open('GET', 'https://deckofcardsapi.com/api/deck/8m9l3ke6yf8f/shuffle/?deck_count=3');
     request.onload = function()
     {
         var data = JSON.parse(this.response);
@@ -32,13 +46,16 @@ function createDeck()
     request.send();
 }
 
-function dealPlayer()
+function dealPlayer(pRequest, deckID, playerHand)
 {
-    request.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID +'/draw/?count=2');
-    request.onload = function()
+    pRequest.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID +'/draw/?count=2');
+    pRequest.onload = function()
     {
         var data = JSON.parse(this.response);
         playerHand = data.cards;
+
+        document.getElementById("PlayerC1").src = playerHand[0].image
+        document.getElementById("PlayerC2").src = playerHand[1].image
 
         // Adding in an if statement for http error codes
         console.log('Initial Deck Creation');
@@ -46,18 +63,19 @@ function dealPlayer()
         console.log(`playerHand: `, playerHand);
         console.log('---------');
     }
-    request.send();
-
-    document.querySelector("#players").innerHTML = playerHand;
+    pRequest.send();
 }
 
-function dealDealer()
+function dealDealer(dRequest, deckID, dealerHand)
 {
-    request.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID +'/draw/?count=2');
-    request.onload = function()
+    dRequest.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID +'/draw/?count=2');
+    dRequest.onload = function()
     {
         var data = JSON.parse(this.response);
         dealerHand = data.cards;
+
+        document.getElementById("DealerC1").src = dealerHand[0].image
+        document.getElementById("DealerC2").src = dealerHand[1].image
 
         // Adding in an if statement for http error codes
         console.log('Initial Deck Creation');
@@ -65,9 +83,7 @@ function dealDealer()
         console.log(`dealerHand: `, dealerHand);
         console.log('---------');
     }
-    request.send();
-
-    document.querySelector("#dealer").innerHTML = dealerHand;
+    dRequest.send();
 }
 
 
