@@ -1,21 +1,35 @@
-/// Current Issue: deckID is undefined for some reason
-/// so can't concat with API endpoint URL for response
-//// So I don't think the "pile" functionality is going to work for us
-//// At least, I haven't been able to get it to work.
-///// Trying to format this in a way the code is reactive to the button pushes
-///// Not really following the tut right now...
+// Getting an Uncaught TypeError: Cannot read property "deck_id" of undefined
+// I think it is an issue of order of operations, for lack of a better word
+// time for sleep
+
+window.onload = function ()
+{
+    document.getElementById('start').addEventListener('click', start);
+    document.getElementById('hitMe').addEventListener('click', hitMe);
+    document.getElementById('stay').addEventListener('click', stay);
+    document.getElementById('log').addEventListener('click', logData);
+}
+
+var houseHand, playerHand, currentDeck;
+var request = new XMLHttpRequest();
+var pRequest = new XMLHttpRequest();
+var hRequest = new XMLHttpRequest();
 
 function start()
 {
-    var dealerHand, playerHand, deckID;
-    var request = new XMLHttpRequest();
-    var pRequest = new XMLHttpRequest();
-    var dRequest = new XMLHttpRequest();
-    
-    createDeck(request, deckID);
-    dealPlayer(pRequest, deckID, playerHand);
-    dealDealer(dRequest, deckID, dealerHand);
+    createDeck();
     showHands();
+    logData();
+}
+
+function hitMe()
+{
+    console.log("Ye, it worked.");
+}
+
+function stay()
+{
+    console.log("Fine, I'll stay then.");
 }
 
 function showHands()
@@ -29,143 +43,87 @@ function showHands()
         pHand.style.display = "block";
 }
 
-function createDeck(request, deckID)
+function logData()
 {
-    request.open('GET', 'https://deckofcardsapi.com/api/deck/8m9l3ke6yf8f/shuffle/?deck_count=3');
-    request.onload = function()
-    {
-        var data = JSON.parse(this.response);
-        deckID = data.deck_id;
-
-        // Adding in an if statement for http error codes
-        console.log('Initial Deck Creation');
-        console.log(`Data: `, data);
-        console.log(`deckID: `, deckID);
-        console.log('---------');
-    }
-    request.send();
+    console.log("*****************");
+    console.log("createDeck() Data")
+    console.log("currentDeck Info: ", currentDeck);
+    console.log("ID: ", currentDeck.deck_id);
+    console.log("-----------------");
+    console.log("dealPlayer() Data");
+    console.log("Player Hand Info: ", playerHand);
+    console.log("-----------------");
+    console.log("dealHouse() Data");
+    console.log("Dealer Hand Info: ", dealerHand);
+    console.log("*****************");
 }
 
-function dealPlayer(pRequest, deckID, playerHand)
+function createDeck()
 {
-    pRequest.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID +'/draw/?count=2');
-    pRequest.onload = function()
-    {
-        var data = JSON.parse(this.response);
-        playerHand = data.cards;
+    fetch(`https://deckofcardsapi.com/api/deck/8m9l3ke6yf8f/shuffle/?deck_count=3`)
+        .then(function (response)
+        {
+            return response.json();
+        })
+        .then((data) => 
+            {
+                currentDeck = data;
 
-        document.getElementById("PlayerC1").src = playerHand[0].image
-        document.getElementById("PlayerC2").src = playerHand[1].image
-
-        // Adding in an if statement for http error codes
-        console.log('Initial Deck Creation');
-        console.log(`Data: `, data);
-        console.log(`playerHand: `, playerHand);
-        console.log('---------');
-    }
-    pRequest.send();
+                // gotta love debugging
+                console.log('Initial Deck Creation');
+                console.log(`Data: `, data);
+                console.log(`Deck Info: `, currentDeck);
+                console.log('-----------------');
+            })
+        .then(dealPlayer()); 
 }
 
-function dealDealer(dRequest, deckID, dealerHand)
+function dealPlayer()
 {
-    dRequest.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID +'/draw/?count=2');
-    dRequest.onload = function()
-    {
-        var data = JSON.parse(this.response);
-        dealerHand = data.cards;
+    var temp = JSON.stringify(currentDeck.deck_id);
 
-        document.getElementById("DealerC1").src = dealerHand[0].image
-        document.getElementById("DealerC2").src = dealerHand[1].image
+    fetch('https://deckofcardsapi.com/api/deck/' + temp + '/draw/?count=2')
+        .then(function (response)
+        {
+            return response.json();
+        })
+        .then((data) => 
+            {
+                playerHand = data;
 
-        // Adding in an if statement for http error codes
-        console.log('Initial Deck Creation');
-        console.log(`Data: `, data);
-        console.log(`dealerHand: `, dealerHand);
-        console.log('---------');
-    }
-    dRequest.send();
+                document.getElementById("PlayerC1").src = playerHand.cards[0].image;
+                document.getElementById("PlayerC2").src = playerHand.cards[1].image;
+
+                // gotta love debugging
+                console.log('Dealing to player');
+                console.log(`Data: `, data);
+                console.log(`playerHand: `, playerHand);
+                console.log('-----------------');
+            })
+        .then(dealHouse());
+
 }
 
-
-
-/*
-All this stuff works, except the piles part. i can't get it to take the variables' data
-
-// create variable for requesting data from API
-var createDeck = new XMLHttpRequest();
-var drawCards = new XMLHttpRequest();
-var dealerPile = new XMLHttpRequest();
-var playerPile = new XMLHttpRequest();
-
-var deckID = 'bo4uftb398f6';
-var cardsDrawn, dealerHand,  playerHand;
-var code, cardCode1, cardCode2;
-
-// Create a deck of cards and store deck id
-createDeck.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID +'/shuffle/?deck_count=3');
-
-createDeck.onload = function() 
+function dealHouse()
 {
-    var data = JSON.parse(this.response);
+    var temp = JSON.stringify(currentDeck.deck_id);
 
-    deckID = data.deck_id;
+    fetch('https://deckofcardsapi.com/api/deck/' + temp + '/draw/?count=2')
+        .then(function (response)
+        {
+            return response.json();
+        })
+        .then((data) => 
+            {
+                houseHand = data;
 
-    /// Adding in an if statement for http error codes
-    console.log('Initial Deck Creation');
-    console.log(`Data: `, data);
-    console.log(`deckID: `, deckID);
-    console.log('---------');
+                document.getElementById("DealerC1").src = houseHand.cards[0].image;
+                document.getElementById("DealerC2").src = houseHand.cards[1].image;
 
+                // gotta love debugging
+                console.log('Dealing to House');
+                console.log(`Data: `, data);
+                console.log(`dealerHand: `, dealerHand);
+                console.log('-----------------');
+            })
 }
-createDeck.send();
-
-// draw two cards from deck and store info
-drawCards.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID + '/draw/?count=2');
-drawCards.onload = function() 
-{
-    var data = JSON.parse(this.response);   
-
-    cardsDrawn = data.cards;
-    cardCode1 = cardsDrawn[0].code;
-    cardCode2 = cardsDrawn[1].code;
-    code = cardCode1 + "," + cardCode2;
-
-    console.log('Drawing 2 Cards');
-    console.log(`Data: `,data);
-    console.log(`cardsDrawn: `, cardsDrawn);
-    console.log(`cardCode1: `, cardCode1);
-    console.log(`cardCode2: `, cardCode2);
-    console.log('---------');
-}
-drawCards.send();
-
-// create dealer pile
-dealerPile.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID + '/pile/Dealer/add/?cards=' + code);
-dealerPile.onload = function()
-{
-    var data = JSON.parse(this.response);
-    
-    dealerHand = data.piles.Dealer;
-
-    console.log('Getting Dealer\'s hand');
-    console.log(`Data:`, data);
-    console.log(`dealerHand: `, dealerHand);
-    console.log('---------');
-}
-dealerPile.send();
-
-// create player pile
-playerPile.open('GET', 'https://deckofcardsapi.com/api/deck/'+ deckID + '/pile/Player/add/?cards=' + code);
-playerPile.onload = function()
-{
-    var data = JSON.parse(this.response);
-
-    playerHand = data.piles.Player;
-
-    console.log('Getting Player\'s hand');
-    console.log(`Data: `, data);
-    console.log(`playerHand: `, playerHand);
-    console.log('---------');
-}
-playerPile.send();
-*/
