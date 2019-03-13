@@ -1,6 +1,6 @@
-// Getting an Uncaught TypeError: Cannot read property "deck_id" of undefined
-// I think it is an issue of order of operations, for lack of a better word
-// time for sleep
+// Need to implement a score tracker of some sort. something uber basic
+// Most of this code is for template use later on, so we know what to do and how
+// time for more sleep
 
 window.onload = function ()
 {
@@ -19,12 +19,37 @@ function start()
 {
     createDeck();
     showHands();
-    logData();
 }
 
 function hitMe()
 {
-    console.log("Ye, it worked.");
+    fetch('https://deckofcardsapi.com/api/deck/' + currentDeck.deck_id + '/draw/?count=1')
+        .then(function (response)
+        {
+            return response.json();
+        })
+        .then((data) =>
+            {
+                playerHand.cards.push(data.cards[0]);
+                var card3 = document.getElementById("PlayerC3");
+
+                if (card3.getAttribute('src') == "") 
+                {
+                    document.getElementById("PlayerC3").src = data.cards[0].image;
+                }
+                else
+                {
+                    document.getElementById("PlayerC4").src = data.cards[0].image;
+                }
+
+                document.getElementById("deckcount").textContent = data.remaining;
+
+                // gotta love debugging
+                console.log('Hitting the Player');
+                console.log(`Data: `, data);
+                console.log(`playerHnad: `, playerHand);
+                console.log('-----------------');
+            })
 }
 
 function stay()
@@ -48,13 +73,13 @@ function logData()
     console.log("*****************");
     console.log("createDeck() Data")
     console.log("currentDeck Info: ", currentDeck);
-    console.log("ID: ", currentDeck.deck_id);
+    console.log("ID: ", currentDeck);
     console.log("-----------------");
     console.log("dealPlayer() Data");
     console.log("Player Hand Info: ", playerHand);
     console.log("-----------------");
     console.log("dealHouse() Data");
-    console.log("Dealer Hand Info: ", dealerHand);
+    console.log("Dealer Hand Info: ", houseHand);
     console.log("*****************");
 }
 
@@ -69,20 +94,22 @@ function createDeck()
             {
                 currentDeck = data;
 
+                document.getElementById("deckcount").textContent = currentDeck.remaining;
+                document.getElementById("status").textContent = currentDeck.shuffled;
+
                 // gotta love debugging
                 console.log('Initial Deck Creation');
                 console.log(`Data: `, data);
-                console.log(`Deck Info: `, currentDeck);
+                console.log(`currentDeck: `, currentDeck);
                 console.log('-----------------');
             })
-        .then(dealPlayer()); 
+        .then(playerHand => dealPlayer(currentDeck))
+        .then(houseHand => dealHouse(currentDeck));
 }
 
-function dealPlayer()
+function dealPlayer(currentDeck)
 {
-    var temp = JSON.stringify(currentDeck.deck_id);
-
-    fetch('https://deckofcardsapi.com/api/deck/' + temp + '/draw/?count=2')
+    fetch('https://deckofcardsapi.com/api/deck/' + currentDeck.deck_id + '/draw/?count=2')
         .then(function (response)
         {
             return response.json();
@@ -93,6 +120,7 @@ function dealPlayer()
 
                 document.getElementById("PlayerC1").src = playerHand.cards[0].image;
                 document.getElementById("PlayerC2").src = playerHand.cards[1].image;
+                document.getElementById("deckcount").textContent = data.remaining;
 
                 // gotta love debugging
                 console.log('Dealing to player');
@@ -100,15 +128,11 @@ function dealPlayer()
                 console.log(`playerHand: `, playerHand);
                 console.log('-----------------');
             })
-        .then(dealHouse());
-
 }
 
-function dealHouse()
+function dealHouse(currentDeck)
 {
-    var temp = JSON.stringify(currentDeck.deck_id);
-
-    fetch('https://deckofcardsapi.com/api/deck/' + temp + '/draw/?count=2')
+    fetch('https://deckofcardsapi.com/api/deck/' + currentDeck.deck_id + '/draw/?count=2')
         .then(function (response)
         {
             return response.json();
@@ -119,11 +143,12 @@ function dealHouse()
 
                 document.getElementById("DealerC1").src = houseHand.cards[0].image;
                 document.getElementById("DealerC2").src = houseHand.cards[1].image;
+                document.getElementById("deckcount").textContent = data.remaining;
 
                 // gotta love debugging
                 console.log('Dealing to House');
                 console.log(`Data: `, data);
-                console.log(`dealerHand: `, dealerHand);
+                console.log(`houseHand: `, houseHand);
                 console.log('-----------------');
             })
 }
