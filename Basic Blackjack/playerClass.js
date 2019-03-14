@@ -10,11 +10,20 @@ class Player
         this.currentAceScore = aceScore;
         this.aceFound = false;
         this.winner = false;
-        this.lose = false;
         this.bust = false;
     }
 
+    //////////////////////////////////////////////////
     // some basic member functions, getters/setters //
+    //////////////////////////////////////////////////
+    
+    // There is no setter for isHouse because that is determined upon creatation
+    // and an established player cannot become the house once a player
+    getIsHouse()
+    {
+        return this.isHouse;
+    }
+    
     setWins(wins)
     {
         this.numberOfWins = wins;
@@ -78,15 +87,6 @@ class Player
         return this.winner;
     }
 
-    setLose(lose)
-    {
-        this.lose = lose;
-    }
-    getLose()
-    {
-        return this.lose;
-    }
-
     setBust(bust)
     {
         this.bust = bust;
@@ -96,7 +96,10 @@ class Player
         return this.bust;
     }
 
+    /////////////////////
     // Other functions //
+    /////////////////////
+
     addCardtoHand(card)
     {
         // This will be called when the player is given another card after the inital deal
@@ -111,7 +114,6 @@ class Player
         this.currentAceScore = 0;
         this.aceFound = false;
         this.winner = false;
-        this.lose = false;
         this.bust = false;        
     }
 
@@ -119,11 +121,16 @@ class Player
     {
         // temp variable for this functions operations
         var currCard;
+        var score = 0, aceScore = 0;
 
         // Not sure the max number of card a hand can have in Blackjack
         // so I set the limit to four. 
         for(var i = 0; i < 4; i++)
         {
+            // reset the current card variable so that each time it goes through the loop
+            // the data will be either null or not null
+            currCard = null;
+
             // get the cards from the given hand in order
             currCard = this.currentHand[i]
 
@@ -141,15 +148,15 @@ class Player
                 if(currCard.value == "KING"||currCard.value == "QUEEN"||currCard.value == "JACK")
                 {
                     // King, Queen, and Jack have values of 10
-                    this.currentScore += 10;
-                    this.currentAceScore += 10;
+                    score += 10;
+                    aceScore += 10;
                 }
                 else if (currCard.value == "ACE")
                 {
                     // Aces are weird. They can be either 1 or 11
                     // This explains why there is an "altScore" variable
-                    this.currentScore += 1;
-                    this.currentAceScore += 11;
+                    score += 1;
+                    aceScore += 11;
 
                     // This boolean helps for when we display out the scores
                     this.aceFound = true;
@@ -158,14 +165,13 @@ class Player
                 {
                     // Just ordinary number cards? Easy. 
                     // Just convert the values and store.
-                    this.currentScore += parseInt(currCard.value);
-                    this.currentAceScore += parseInt(currCard.value);
+                    score += parseInt(currCard.value);
+                    aceScore += parseInt(currCard.value);
                 }
             }
 
-            // reset the current card variable so that each time it goes through the loop
-            // the data will be either null or not null
-            currCard = null;
+            this.setCurrentScore(score);
+            this.setCurrentAceScore(aceScore);
         }
 
         this.checkWinState();
@@ -178,15 +184,15 @@ class Player
         if (this.currentAceScore == this.currentScore)
         {
             if (this.currentScore == 21)
-                winner = true;
+                this.winner = true;
         }
         else if (this.currentAceScore > this.currentScore)
         {
             // this line could be redudant, but its more so for self-checking
-            aceFound = true;
+            this.aceFound = true;
 
             if (this.currentAceScore == 21)
-                winner = true;
+                this.winner = true;
         }
     }
     
@@ -206,24 +212,15 @@ class Player
         else
             elementID = "playerScore";
 
-        // check for which win state we have, non-Ace win or Ace win
-        if (this.winner == true && this.aceFound == true)
-            document.getElementById(elementID).textContent = `You won with a score of ${this.currentAceScore}`;
-        else if (this.winner == true)
-            document.getElementById(elementID).textContent = `You won with a score of ${this.currentScore}`;
-        // Then check if the player lost
-        else if (this.bust == true)
-            document.getElementById(elementID).textContent = `You lost with a score of ${this.currentScore}`;
+        if(this.aceFound == true)
+            document.getElementById(elementID).textContent = `Your hand's value is: ${this.currentScore} or ${this.currentAceScore}`;
         else
-        {
-            // didn't win? didn't lose? time to keep playing. 
-            // Display the scores.
-            if (this.aceFound == true)
-                document.getElementById(elementID).textContent = `Your hand's value is: ${this.currentScore} or ${this.currentAceScore}`;
-            else
-                document.getElementById(elementID).textContent = `Your hand's value is: ${this.currentScore}`;
-        }
+            document.getElementById(elementID).textContent = `Your hand's value is: ${this.currentScore}`;
     }
 
-    // The following Functions are utilize for the House/Dealer
+    //////////////////////////////////////////////////////////////
+    // The following Functions are utilize for the House/Dealer //
+    //////////////////////////////////////////////////////////////
+
+    
 }
