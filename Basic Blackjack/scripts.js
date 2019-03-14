@@ -1,24 +1,19 @@
 // Notes //
-// Thinking about making a Player and House class so that the information will be more organized
-// I think this will also remove the need for some Global variables
+// Things to work on:
+//  - Implement the AI for the house/dealer. Currently, the house doesn't function
+//      inteligently, or like a human would.
 //
 
 // Global Variables //
 var player1 = new Player();
-var house = new Player();
-
-var houseHand;//, playerHand
+var house = new Player(true);
 var currentDeck;
-var houseCurrentScore, playerCurrentScore;
-
-var request = new XMLHttpRequest();
-var pRequest = new XMLHttpRequest();
-var hRequest = new XMLHttpRequest();
 
 // Set listeners on-load //
 window.onload = function ()
 {
     document.getElementById('start').addEventListener('click', start);
+    document.getElementById('deal').addEventListener('click', deal);
     document.getElementById('hitMe').addEventListener('click', hitMe);
     document.getElementById('stay').addEventListener('click', stay);
     document.getElementById('log').addEventListener('click', logData);
@@ -27,9 +22,15 @@ window.onload = function ()
 // Functions tied to buttons //
 function start()
 {
-    clearHands();
     createDeck();
-    showHands();
+    changeHandVisibility();
+}
+
+function deal()
+{
+    clearHands();
+    dealNewHands();
+    changeHandVisibility();
 }
 
 function hitMe()
@@ -40,6 +41,7 @@ function hitMe()
 
 function stay()
 {
+    // add AI for house here
     hitHouse();
 }
 
@@ -52,10 +54,10 @@ function logData()
     console.log("ID: ", currentDeck);
     console.log("-----------------");
     console.log("dealPlayer() Data");
-    console.log("Player Hand Info: ", player1.getCurrentHand); //playerHand);
+    console.log("Player Hand Info: ", player1);
     console.log("-----------------");
     console.log("dealHouse() Data");
-    console.log("House Hand Info: ", houseHand);
+    console.log("House Hand Info: ", house);
     console.log("*****************");
 }
 
@@ -63,7 +65,12 @@ function logData()
 function clearHands()
 {
     // set CSS to hide the currently shown hands, assuming they are shown
-    hideHands();
+    changeHandVisibility();
+
+    // reset hands to an empty state
+    // this is to ensure no data from previous rounds is used
+    house.resetHand();
+    player1.resetHand();
 
     // setting values to null or empty string 
     // so nothing will shown up when we reveal hands again
@@ -117,32 +124,25 @@ function createDeck()
                 // can test later...
             })
         .then(data2 => dealPlayer(currentDeck))
-        .then(houseHand => dealHouse(currentDeck));
+        .then(data3 => dealHouse(currentDeck))
 }
 
-function showHands()
+function changeHandVisibility()
 {
     // set variables to some HTML elements
     var dHand = document.getElementById("house")
     var pHand = document.getElementById("player")
 
-    // if the element's CSS display value is none, change it
+    // if the hands are hidden, reveal
+    // if the hands are revealed, hide them
     if (dHand.style.display === "none") 
         dHand.style.display = "block";
+    else
+        dHand.style.display = "none";
+
     if (pHand.style.display === "none")
         pHand.style.display = "block";
-}
-
-function hideHands()
-{
-    // very similar to showHands()
-    // can merge two later on...
-    var dHand = document.getElementById("house")
-    var pHand = document.getElementById("player")
-
-    if (dHand.style.display !== "none") 
-        dHand.style.display = "none";
-    if (pHand.style.display !== "none")
+    else
         pHand.style.display = "none";
 }
 
@@ -157,12 +157,11 @@ function dealPlayer(currentDeck)
         .then((data) => 
             {
                 // store data for long term use
-                //playerHand = data;
                 player1.setCurrentHand(data.cards);
 
                 // show the drawn cards in the HTML file
-                document.getElementById("PlayerC1").src = data.cards[0].image; //playerHand.cards[0].image;
-                document.getElementById("PlayerC2").src = data.cards[1].image; //playerHand.cards[1].image;
+                document.getElementById("PlayerC1").src = data.cards[0].image;
+                document.getElementById("PlayerC2").src = data.cards[1].image;
 
                 // adjust the deck count and update value within our currentDeck variable
                 document.getElementById("deckcount").textContent = data.remaining;
@@ -171,13 +170,13 @@ function dealPlayer(currentDeck)
                 // gotta love debugging
                 console.log('Dealing to player');
                 console.log(`Data: `, data);
-                console.log(`playerHand: `, player1.getCurrentHand()); // playerHand);
+                console.log(`playerHand: `, player1.getCurrentHand());
                 console.log('-----------------');
 
                 // Now we can call out function to calculate the score for the player
                 // this score will be shown on screen for the user to easily now the value of their hand
             })
-        .then ((data2) => player1.calculateScore()) //calculateScore("player"))
+        .then ((data2) => player1.calculateScore()) 
 }
 
 function dealHouse(currentDeck)
@@ -190,11 +189,11 @@ function dealHouse(currentDeck)
         .then((data) => 
             {
                 // store data for long term use
-                houseHand = data;
+                house.setCurrentHand(data.cards);
                 
                 // show the drawn cards in the HTML file
-                document.getElementById("HouseC1").src = houseHand.cards[0].image;
-                document.getElementById("HouseC2").src = houseHand.cards[1].image;
+                document.getElementById("HouseC1").src = data.cards[0].image;
+                document.getElementById("HouseC2").src = data.cards[1].image;
 
                 // adjust the deck count and update value within our currentDeck variable
                 document.getElementById("deckcount").textContent = data.remaining;
@@ -203,207 +202,279 @@ function dealHouse(currentDeck)
                 // gotta love debugging
                 console.log('Dealing to House');
                 console.log(`Data: `, data);
-                console.log(`houseHand: `, houseHand);
+                console.log(`houseHand: `, house.getCurrentHand());
                 console.log('-----------------');
 
                 // Now we can call out function to calculate the score for the house
                 // this score will be shown on screen for the user to easily now the value of the house's hand
             })
-            .then ((data2) => calculateScore("house")) 
+        .then ((data2) => house.calculateScore()) 
+        .then ((data3) => compareScores());    
 }
 
-function calculateScore(who)
-{        
-    // variables to track score and is an ace was drawn
-    var score = 0, altScore = 0, currCard;
-    var aceFound = false;
+function dealNewHands()
+{
+     // API call to draw the two inital cards from our current deck
+     fetch('https://deckofcardsapi.com/api/deck/' + currentDeck.deck_id + '/draw/?count=2')
+     .then(function (response)
+     {
+         return response.json();
+     })
+     .then((data) => 
+         {
+             // store data for long term use
+             player1.setCurrentHand(data.cards);
 
-    // First, we check who's score we are calculating
-    if(who == "player")
+             // show the drawn cards in the HTML file
+             document.getElementById("PlayerC1").src = data.cards[0].image;
+             document.getElementById("PlayerC2").src = data.cards[1].image;
+
+             // adjust the deck count and update value within our currentDeck variable
+             document.getElementById("deckcount").textContent = data.remaining;
+             currentDeck.remaining = data.remaining;
+
+             // gotta love debugging
+             console.log('Dealing to player');
+             console.log(`Data: `, data);
+             console.log(`playerHand: `, player1.getCurrentHand());
+             console.log('-----------------');
+
+             // Now we can call out function to calculate the score for the player
+             // this score will be shown on screen for the user to easily now the value of their hand
+         })
+     .then ((data2) => player1.calculateScore())
+     .then ((data3) => dealNewHandsHelper());
+}
+
+function dealNewHandsHelper()
+{
+    fetch('https://deckofcardsapi.com/api/deck/' + currentDeck.deck_id + '/draw/?count=2')
+    .then(function (response)
     {
-        // Not sure the max number of card a hand can have in Blackjack
-        // so I set the limit to four. 
-        for(var i = 0; i < 4; i++)
+        return response.json();
+    })
+    .then((data) => 
         {
-            // get the cards from the given hand in order
-            currCard = playerHand.cards[i]
+            // store data for long term use
+            house.setCurrentHand(data.cards);
+            
+            // show the drawn cards in the HTML file
+            document.getElementById("HouseC1").src = data.cards[0].image;
+            document.getElementById("HouseC2").src = data.cards[1].image;
 
-            // if there is no card, we exit the forloop
-            if(currCard == null)
-            {
-                // This can occur when the game first starts
-                // the house and player will only have two cards each,
-                // so when we check for a third card, we get a null/undefined error
-                break;
-            }
-            else
-            {
-                // There are some cards! good job!
-                if(currCard.value == "KING"||currCard.value == "QUEEN"||currCard.value == "JACK")
-                {
-                    // King, Queen, and Jack have values of 10
-                    score += 10;
-                    altScore += 10;
-                }
-                else if (currCard.value == "ACE")
-                {
-                    // Aces are weird. They can be either 1 or 11
-                    // This explains why there is an "altScore" variable
-                    score += 1;
-                    altScore += 11;
+            // adjust the deck count and update value within our currentDeck variable
+            document.getElementById("deckcount").textContent = data.remaining;
+            currentDeck.remaining = data.remaining;
 
-                    // This boolean helps for when we display out the scores
-                    aceFound = true;
-                }
-                else
-                {
-                    // Just ordinary number cards? Easy. 
-                    // Just convert the values and store.
-                    score += parseInt(currCard.value);
-                    altScore += parseInt(currCard.value);
-                }
-            }
+            // gotta love debugging
+            console.log('Dealing to House');
+            console.log(`Data: `, data);
+            console.log(`houseHand: `, house.getCurrentHand());
+            console.log('-----------------');
 
-            // reset the current card variable so that each time it goes through the loop
-            // the data will be either null or not null
-            currCard = null;
-        }  
+            // Now we can call out function to calculate the score for the house
+            // this score will be shown on screen for the user to easily now the value of the house's hand
+        })
+        .then ((data2) => house.calculateScore())
+        .then ((data3) => compareScores());
+}
 
-        // Feelin' a bit dizzy? we're done looping, so we check if anyone has won or lost yet.
-        checkWinLoseState("player", aceFound, score, altScore);
-    }
-    else if (who == "house")
+
+function compareScores()
+{
+    // check for scores of 21 aka blackjack
+    if (player1.getCurrentScore() == 21 || player1.getCurrentAceScore() == 21)
     {
-        // same as above, just for the house hand now.
-        for(var i = 0; i < 4; i++)
+        // check if house has 21 also
+        // this will result in draw, I guess
+        if (house.getCurrentScore() == 21 || house.getCurrentAceScore() == 21)
         {
-            currCard = houseHand.cards[i]
-
-            if(currCard == null)
-            {
-                break;
-            }
-            else
-            {
-                if(currCard.value == "KING"||currCard.value == "QUEEN"||currCard.value == "JACK")
-                {
-                    score += 10;
-                    altScore += 10;
-                }
-                else if (currCard.value == "ACE")
-                {
-                    score += 1;
-                    altScore += 11;
-                    aceFound = true;
-                }
-                else
-                {
-                    score += parseInt(currCard.value);
-                    altScore += parseInt(currCard.value);
-                }
-            }
-
-            currCard = null;
+            // function to call draw 
         }
+        else declareWinnerLoser(player1, house, house.getBust());
+    }
 
-        checkWinLoseState("house", aceFound, score, altScore);
+    if (house.getCurrentScore() == 21 || house.getCurrentAceScore() == 21)
+    {
+        if(player1.getCurrentScore() == 21 || player1.getCurrentAceScore() == 21)
+        {
+            // function to call draw
+        }
+        else declareWinnerLoser(house, player1, player1.getBust());
+    }
+
+    // check for an Ace in the player's hand
+    if(player1.getAceFound() == true)
+    {
+        // check if house has an Ace
+        if(house.getAceFound() == true)
+        {
+            // compare the currentAceScore of the two hands
+            if(player1.getCurrentAceScore() > house.getCurrentAceScore())
+            {
+                // check if the player is in a win state
+                if(player1.getWinner() == true)
+                {
+                    // player wins round
+                    declareWinnerLoser(player1, house, house.getBust());
+                }
+            }
+            else if(player1.getCurrentAceScore() < house.getCurrentAceScore())
+            {
+                // check if the player is in a win state
+                if(house.getWinner() == true)
+                {
+                    // player wins round
+                    declareWinnerLoser(house, player1, player1.getBust());
+                }
+            }
+            else if(player1.getCurrentAceScore() == house.getCurrentAceScore())
+            {
+                // Not sure what to do in this instance, consult team
+            }
+        }
+        else
+        {
+            // compare player's aceScore to houses normal score
+            if(player1.getCurrentAceScore() > house.getCurrentScore())
+            {
+                // check if the player is in a win state
+                if(player1.getWinner() == true)
+                {
+                    // player wins round
+                    declareWinnerLoser(player1, house, house.getBust());
+                }
+            }
+            else if(player1.getCurrentAceScore() < house.getCurrentScore())
+            {
+                // check if the player is in a win state
+                if(house.getWinner() == true)
+                {
+                    // player wins round
+                    declareWinnerLoser(house, player1, player.getBust());
+                }
+
+                if(house.getBust() == true)
+                {
+                    // player loses round due to going over 21
+                    declareWinnerLoser(player1, house, true);
+                }
+            }
+            else if(player1.getCurrentAceScore() == house.getCurrentScore())
+            {
+                // Not sure what to do in this instance, consult team
+            }
+        }
     }
     else
     {
-        // Not sure how it could end up here, but I thought it would be good to have it.
-        // Never know when things will go wrong with these contraptions...
-        console.log("variable should be either player or house");
-        console.log(hand);
+        // check if house has an Ace
+        if(house.getAceFound() == true)
+        {
+            // compare the player's normal score to house's ace score
+            if(player1.getCurrentScore() > house.getCurrentAceScore())
+            {
+                // check if the player is in a win state
+                if(player1.getWinner() == true)
+                {
+                    // player wins round
+                    declareWinnerLoser(player1, house, house.getBust());
+                }
+
+                if(player1.getBust() == true)
+                {
+                    // player loses round due to going over 21
+                    declareWinnerLoser(house, player1, true);
+                }
+            }
+            else if(player1.getCurrentScore() < house.getCurrentAceScore())
+            {
+                // check if the player is in a win state
+                if(house.getWinner() == true)
+                {
+                    // player wins round
+                    declareWinnerLoser(house, player1, player.getBust());
+                }
+            }
+            else if(player1.getCurrentScore() == house.getCurrentAceScore())
+            {
+                // Not sure what to do in this instance, consult team
+            }
+        }
+        else
+        {
+            // compare player's aceScore to houses normal score
+            if(player1.getCurrentScore() > house.getCurrentScore())
+            {
+                // check if the player is in a win state
+                if(player1.getWinner() == true)
+                {
+                    // player wins round
+                    declareWinnerLoser(player1, house, house.getBust());
+                }
+
+                if(player1.getBust() == true)
+                {
+                    // player loses round due to going over 21
+                    declareWinnerLoser(house, player1, true);
+                }
+            }
+            else if(player1.getCurrentScore() < house.getCurrentScore())
+            {
+                // check if the player is in a win state
+                if(house.getWinner() == true)
+                {
+                    // player wins round
+                    declareWinnerLoser(house, player1, player.getBust());
+                }
+
+                if(house.getBust() == true)
+                {
+                    // house loses round due to going over 21
+                    declareWinnerLoser(player1, house, true);
+                }
+            }
+            else if(player1.getCurrentScore() == house.getCurrentScore())
+            {
+                // Not sure what to do in this instance, consult team
+            }
+        }
     }
 }
 
-function checkWinLoseState(hand, aceFound, score, altScore)
+function declareWinnerLoser(winner, loser, didLoserBust)
 {
-    // variables
-    var winner = false;
-    var altWinner = false;
-    var bust = false;
+    var winnerID, loserID;
 
-    // check who's hand we are peeping
-    if (hand == "player")
+    // check if house or player
+    if(winner.getIsHouse() == true)
     {
-        // check for a win state
-        if(score == 21 || altScore == 21)
-        {
-            // either score or altScore is 21
-            // if altScore is greater, that means an Ace was drawn and
-            // since an Ace can be 1 or 11, the player is going to go with the 11
-            // so they can win the round. Otherwise its a non-Ace win
-            if (altScore > score)
-                altWinner = true;
-            else 
-                winner = true;
-        }
-        // since Ace can be 1 or 11, even if the first two cards would result in an altScore
-        // that is greater than 21, the player wouldn't go for the high ace, they'd go low
-        // so we just check if score is over 21. This is our lose state
-        else if (score > 21)
-            bust = true;
-
-        // now that we are down checking states, we display the score
-        displayScore("player", aceFound, score, altScore, winner, altWinner, bust);
+        winnerID = "houseScore";
+        loserID = "playerScore";
     }
-    if (hand == "house")
+    else
     {
-        // similar to the above code section, just now operating on the house's score
-        if(score == 21 || altScore == 21)
-        {
-            if (altScore > score)
-                altWinner = true;
-            else
-                winner = true;
-        }
-        else if (score > 21)
-            bust = true;
-        
-        displayScore("house", aceFound, score, altScore, winner, altWinner, bust);
+        winnerID = "playerScore";
+        loserID = "houseScore";
     }
-}
 
-function displayScore(hand, aceFound, score, altScore, winner, altWinner, bust)
-{
-    // check who's hand we are copin' a glean from
-    if (hand == "player")
+    // check if we need to output aceScore or normal score
+    // the change winner score HTML element
+    if(winner.aceFound == true)
+        document.getElementById(winnerID).textContent = `You won with a score of ${winner.getCurrentAceScore()}`;
+    else
+        document.getElementById(winnerID).textContent = `You won with a score of ${winner.getCurrentScore()}`;
+
+    // check if we need to output aceScore or normal score
+    // the change loser score HTML element
+    if(loser.aceFound == true)
+        document.getElementById(loserID).textContent = `You lost with a score of ${loser.getCurrentAceScore()}`;
+    else
     {
-        // check for which win state we have, non-Ace win or Ace win
-        if (altWinner == true)
-            document.getElementById("playerScore").textContent = `You won with a score of ${altScore}`;
-        else if (winner == true)
-            document.getElementById("playerScore").textContent = `You won with a score of ${score}`;
-        // Then check if the player lost
-        else if (bust == true)
-            document.getElementById("playerScore").textContent = `You lost with a score of ${score}`;
+        if(didLoserBust == true)
+            document.getElementById(loserID).textContent = `You Bust with a score of ${loser.getCurrentScore()}`;
         else
-        {
-            // didn't win? didn't lose? time to keep playing. 
-            // Display the scores.
-            if (aceFound == true)
-                document.getElementById("playerScore").textContent = `Your hand's value is: ${score} or ${altScore}`;
-            else
-                document.getElementById("playerScore").textContent = `Your hand's value is: ${score}`;
-        }
-    }
-    if (hand == "house")
-    {
-        // similar to the above code section, just now operating on the house's score
-        if (altWinner == true)
-            document.getElementById("houseScore").textContent = `You won with a score of ${altScore}`;
-        else if (winner == true)
-            document.getElementById("houseScore").textContent = `You won with a score of ${score}`;
-        else if (bust == true)
-            document.getElementById("houseScore").textContent = `You lost with a score of ${score}`;
-        else
-        {
-            if (aceFound == true)
-                document.getElementById("houseScore").textContent = `Your hand's value is: ${score} or ${altScore}`;
-            else
-                document.getElementById("houseScore").textContent = `Your hand's value is: ${score}`;
-        }
+            document.getElementById(loserID).textContent = `You lost with a score of ${loser.getCurrentScore()}`;
     }
 }
 
@@ -425,7 +496,6 @@ function hitPlayer()
         .then((data) =>
             {
                 // Add the new card to the end of the cards array for playerHand
-                //playerHand.cards.push(data.cards[0]);
                 player1.addCardtoHand(data.cards[0]);
 
                 // set the 3rd card html element to the drawn cards' image
@@ -437,12 +507,13 @@ function hitPlayer()
                 // gotta love debugging
                 console.log('Hitting the Player');
                 console.log(`Data: `, data);
-                console.log(`playerHnad: `, player1.getCurrentHand);
+                console.log(`playerHnad: `, player1.getCurrentHand());
                 console.log('-----------------');
 
                 // Calling calulcate score to update player's score
             })
-        .then ((data2) => player1.calculateScore()) //calculateScore("player"))
+        .then ((data2) => player1.calculateScore())
+        .then ((data3) => compareScores());
     }
     else if (card4.getAttribute('src') == "")
     {
@@ -454,7 +525,6 @@ function hitPlayer()
             })
         .then((data) =>
             {
-                //playerHand.cards.push(data.cards[0]);
                 player1.addCardtoHand(data.cards[0]);
                 document.getElementById("PlayerC4").src = data.cards[0].image;
                 document.getElementById("deckcount").textContent = data.remaining;
@@ -463,10 +533,10 @@ function hitPlayer()
                 // gotta love debugging
                 console.log('Hitting the Player');
                 console.log(`Data: `, data);
-                console.log(`playerHnad: `, player1.getCurrentHand); // playerHand);
-                console.log('-----------------');
+                console.log(`playerHnad: `, player1.getCurrentHand());
             })
-        .then ((data2) => player1.calculateScore()) //calculateScore("player"))
+        .then ((data2) => player1.calculateScore())
+        .then ((data3) => compareScores());
     }
     else
     {   
@@ -493,7 +563,7 @@ function hitHouse()
             })
         .then((data) =>
             {
-                houseHand.cards.push(data.cards[0]);
+                house.addCardtoHand(data.cards[0]);
                 document.getElementById("HouseC3").src = data.cards[0].image;
                 document.getElementById("deckcount").textContent = data.remaining;
                 currentDeck.remaining = data.remaining;
@@ -501,10 +571,11 @@ function hitHouse()
                 // gotta love debugging
                 console.log('Hitting the House');
                 console.log(`Data: `, data);
-                console.log(`houseHand: `, houseHand);
+                console.log(`houseHand: `, house.getCurrentHand());
                 console.log('-----------------');
             })
-        .then ((data2) => calculateScore("house"))
+        .then ((data2) => house.calculateScore())
+        .then ((data3) => compareScores());
     }
     else if (card4.getAttribute('src') == "")
     {
@@ -515,18 +586,19 @@ function hitHouse()
             })
         .then((data) =>
             {
-                houseHand.cards.push(data.cards[0]);
-                document.getElementById("HouseC4").src = data.cards[0].image;
-                document.getElementById("deckcount").textContent = data.remaining;
-                currentDeck.remaining = data.remaining;
-
-                // gotta love debugging
-                console.log('Hitting the House');
-                console.log(`Data: `, data);
-                console.log(`houseHand: `, houseHand);
-                console.log('-----------------');
+                 house.addCardtoHand(data.cards[0]);
+                 document.getElementById("HouseC4").src = data.cards[0].image;
+                 document.getElementById("deckcount").textContent = data.remaining;
+                 currentDeck.remaining = data.remaining;
+ 
+                 // gotta love debugging
+                 console.log('Hitting the House');
+                 console.log(`Data: `, data);
+                 console.log(`houseHand: `, house.getCurrentHand());
+                 console.log('-----------------');
             })
-        .then ((data2) => calculateScore("house"))
+        .then ((data2) => house.calculateScore())
+        .then ((data3) => compareScores());
     }
     else
     {
