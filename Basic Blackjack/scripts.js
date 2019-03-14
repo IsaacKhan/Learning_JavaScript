@@ -4,8 +4,13 @@
 //
 
 // Global Variables //
-var houseHand, playerHand, currentDeck;
+var player1 = new Player();
+var house = new Player();
+
+var houseHand;//, playerHand
+var currentDeck;
 var houseCurrentScore, playerCurrentScore;
+
 var request = new XMLHttpRequest();
 var pRequest = new XMLHttpRequest();
 var hRequest = new XMLHttpRequest();
@@ -47,7 +52,7 @@ function logData()
     console.log("ID: ", currentDeck);
     console.log("-----------------");
     console.log("dealPlayer() Data");
-    console.log("Player Hand Info: ", playerHand);
+    console.log("Player Hand Info: ", player1.getCurrentHand); //playerHand);
     console.log("-----------------");
     console.log("dealHouse() Data");
     console.log("House Hand Info: ", houseHand);
@@ -111,7 +116,7 @@ function createDeck()
                 // but for the .then promise to work it needs to return to something
                 // can test later...
             })
-        .then(playerHand => dealPlayer(currentDeck))
+        .then(data2 => dealPlayer(currentDeck))
         .then(houseHand => dealHouse(currentDeck));
 }
 
@@ -152,11 +157,12 @@ function dealPlayer(currentDeck)
         .then((data) => 
             {
                 // store data for long term use
-                playerHand = data;
+                //playerHand = data;
+                player1.setCurrentHand(data.cards);
 
                 // show the drawn cards in the HTML file
-                document.getElementById("PlayerC1").src = playerHand.cards[0].image;
-                document.getElementById("PlayerC2").src = playerHand.cards[1].image;
+                document.getElementById("PlayerC1").src = data.cards[0].image; //playerHand.cards[0].image;
+                document.getElementById("PlayerC2").src = data.cards[1].image; //playerHand.cards[1].image;
 
                 // adjust the deck count and update value within our currentDeck variable
                 document.getElementById("deckcount").textContent = data.remaining;
@@ -165,13 +171,13 @@ function dealPlayer(currentDeck)
                 // gotta love debugging
                 console.log('Dealing to player');
                 console.log(`Data: `, data);
-                console.log(`playerHand: `, playerHand);
+                console.log(`playerHand: `, player1.getCurrentHand()); // playerHand);
                 console.log('-----------------');
 
                 // Now we can call out function to calculate the score for the player
                 // this score will be shown on screen for the user to easily now the value of their hand
             })
-        .then ((data2) => calculateScore("player"))
+        .then ((data2) => player1.calculateScore()) //calculateScore("player"))
 }
 
 function dealHouse(currentDeck)
@@ -203,7 +209,7 @@ function dealHouse(currentDeck)
                 // Now we can call out function to calculate the score for the house
                 // this score will be shown on screen for the user to easily now the value of the house's hand
             })
-            .then ((data2) => calculateScore("house"))
+            .then ((data2) => calculateScore("house")) 
 }
 
 function calculateScore(who)
@@ -419,7 +425,8 @@ function hitPlayer()
         .then((data) =>
             {
                 // Add the new card to the end of the cards array for playerHand
-                playerHand.cards.push(data.cards[0]);
+                //playerHand.cards.push(data.cards[0]);
+                player1.addCardtoHand(data.cards[0]);
 
                 // set the 3rd card html element to the drawn cards' image
                 // and update the number of remaining cards in HTML and currentDeck
@@ -430,12 +437,12 @@ function hitPlayer()
                 // gotta love debugging
                 console.log('Hitting the Player');
                 console.log(`Data: `, data);
-                console.log(`playerHnad: `, playerHand);
+                console.log(`playerHnad: `, player1.getCurrentHand);
                 console.log('-----------------');
 
                 // Calling calulcate score to update player's score
             })
-        .then ((data2) => calculateScore("player"))
+        .then ((data2) => player1.calculateScore()) //calculateScore("player"))
     }
     else if (card4.getAttribute('src') == "")
     {
@@ -447,7 +454,8 @@ function hitPlayer()
             })
         .then((data) =>
             {
-                playerHand.cards.push(data.cards[0]);
+                //playerHand.cards.push(data.cards[0]);
+                player1.addCardtoHand(data.cards[0]);
                 document.getElementById("PlayerC4").src = data.cards[0].image;
                 document.getElementById("deckcount").textContent = data.remaining;
                 currentDeck.remaining = data.remaining;
@@ -455,10 +463,10 @@ function hitPlayer()
                 // gotta love debugging
                 console.log('Hitting the Player');
                 console.log(`Data: `, data);
-                console.log(`playerHnad: `, playerHand);
+                console.log(`playerHnad: `, player1.getCurrentHand); // playerHand);
                 console.log('-----------------');
             })
-        .then ((data2) => calculateScore("player"))
+        .then ((data2) => player1.calculateScore()) //calculateScore("player"))
     }
     else
     {   
