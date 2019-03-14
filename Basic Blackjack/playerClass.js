@@ -1,7 +1,8 @@
 class Player
 {
-    constructor(wins = 0, losses = 0, hand = null, score = 0, aceScore = 0)
+    constructor(house = false, wins = 0, losses = 0, hand = null, score = 0, aceScore = 0)
     {
+        this.isHouse = house;
         this.numberOfWins = wins;
         this.numberOfLosses = losses;
         this.currentHand = hand;
@@ -140,15 +141,15 @@ class Player
                 if(currCard.value == "KING"||currCard.value == "QUEEN"||currCard.value == "JACK")
                 {
                     // King, Queen, and Jack have values of 10
-                    this.score += 10;
-                    this.aceScore += 10;
+                    this.currentScore += 10;
+                    this.currentAceScore += 10;
                 }
                 else if (currCard.value == "ACE")
                 {
                     // Aces are weird. They can be either 1 or 11
                     // This explains why there is an "altScore" variable
-                    this.score += 1;
-                    this.aceScore += 11;
+                    this.currentScore += 1;
+                    this.currentAceScore += 11;
 
                     // This boolean helps for when we display out the scores
                     this.aceFound = true;
@@ -157,8 +158,8 @@ class Player
                 {
                     // Just ordinary number cards? Easy. 
                     // Just convert the values and store.
-                    this.score += parseInt(currCard.value);
-                    this.aceScore += parseInt(currCard.value);
+                    this.currentScore += parseInt(currCard.value);
+                    this.currentAceScore += parseInt(currCard.value);
                 }
             }
 
@@ -166,8 +167,12 @@ class Player
             // the data will be either null or not null
             currCard = null;
         }
-    }
 
+        this.checkWinState();
+        this.checkBustState();
+        this.displayScore();
+    }
+    
     checkWinState()
     {
         if (this.currentAceScore == this.currentScore)
@@ -184,11 +189,41 @@ class Player
                 winner = true;
         }
     }
-
-    checkbustState()
+    
+    checkBustState()
     {
         // don't need to check aceScore since ace can be either 1 or 11
         if (this.currentScore > 21)
             this.bust = true;
     }
+
+    displayScore()
+    {
+        var elementID;
+
+        if (this.isHouse == true)
+            elementID = "houseScore";
+        else
+            elementID = "playerScore";
+
+        // check for which win state we have, non-Ace win or Ace win
+        if (this.winner == true && this.aceFound == true)
+            document.getElementById(elementID).textContent = `You won with a score of ${this.currentAceScore}`;
+        else if (this.winner == true)
+            document.getElementById(elementID).textContent = `You won with a score of ${this.currentScore}`;
+        // Then check if the player lost
+        else if (this.bust == true)
+            document.getElementById(elementID).textContent = `You lost with a score of ${this.currentScore}`;
+        else
+        {
+            // didn't win? didn't lose? time to keep playing. 
+            // Display the scores.
+            if (this.aceFound == true)
+                document.getElementById(elementID).textContent = `Your hand's value is: ${this.currentScore} or ${this.currentAceScore}`;
+            else
+                document.getElementById(elementID).textContent = `Your hand's value is: ${this.currentScore}`;
+        }
+    }
+
+    // The following Functions are utilize for the House/Dealer
 }
